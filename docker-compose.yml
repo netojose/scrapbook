@@ -1,0 +1,57 @@
+version: "3.4"
+
+services:
+
+  mysql-db:
+    container_name: mysql_container
+    image: mysql:5.7
+    environment:
+      MYSQL_USER: "${MYSQL_USER}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE}"
+      MYSQL_HOST: localhost
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - ${MYSQL_PORT}:${MYSQL_PORT}
+    restart: unless-stopped
+    volumes:
+      - ./dbdata:/var/lib/mysql
+
+  server:
+    container_name: server_container
+    build: ./server
+    depends_on:
+      - mysql-db
+    restart: on-failure
+    environment:
+      SERVER_PORT: "${SERVER_PORT}"
+      DB_USER: "${MYSQL_USER}"
+      DB_PASSWORD: "${MYSQL_PASSWORD}"
+      DB_DATABASE: "${MYSQL_DATABASE}"
+      DB_PORT: "${MYSQL_PORT}"
+      DB_HOST: "${MYSQL_HOST}"
+      JWT_SECRET: "${JWT_SECRET}"
+      SENDGRID_API_KEY: "${SENDGRID_API_KEY}"
+      ADMIN_EMAIL: "${ADMIN_EMAIL}"
+      APP_URL: "${APP_URL}"
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    volumes:
+      - ./server:/app
+      - '/app/node_modules'
+    links:
+      - mysql-db
+
+  client:
+    container_name: client_container
+    build: ./client
+    environment:
+      APP_PORT: ${CLIENT_PORT}
+      REACT_APP_API_URL: ${API_URL}
+    ports:
+      - ${CLIENT_PORT}:${CLIENT_PORT}
+    volumes:
+      - ./client:/app
+      - '/app/node_modules'
+    links:
+      - server
